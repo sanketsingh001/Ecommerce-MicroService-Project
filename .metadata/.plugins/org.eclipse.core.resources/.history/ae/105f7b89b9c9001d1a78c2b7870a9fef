@@ -1,0 +1,4 @@
+spring.data.mongodb.uri=mongodb+srv://root:admin1234@cluster0.yvipjmf.mongodb.net/product-service?retryWrites=true&w=majority
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka
+spring.application.name=product-service
+server.port=0

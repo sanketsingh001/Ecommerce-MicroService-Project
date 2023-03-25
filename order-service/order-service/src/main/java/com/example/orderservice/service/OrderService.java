@@ -1,0 +1,77 @@
+package com.example.orderservice.service;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.example.orderservice.dto.InventoryResponse;
+import com.example.orderservice.dto.OrderLineItemsdto;
+import com.example.orderservice.dto.OrderRequest;
+import com.example.orderservice.model.Order;
+import com.example.orderservice.model.OrderLineItem;
+import com.example.orderservice.repository.OrderRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+ public class OrderService {
+
+	private final OrderRepository repo;
+	//Injecting the webClient Bean
+	private final WebClient.Builder webClientBuilder;
+	
+	
+public void placeOrder(OrderRequest orderRequest) {
+		Order order = new Order();
+order.setOrderNumber(UUID.randomUUID().toString());
+	 List<OrderLineItem> orderLineItem=orderRequest.getListOrderLineItemsdto()
+		            .stream()
+		            .map(this::mapToDto)
+		            .toList();
+		order.setOrderLineItemList(orderLineItem);
+		
+		
+		List<String> skucodes= order.getOrderLineItemList().stream()
+		     .map(OrderLineItem::getSkucode)
+		     .toList();
+		//Call the inventory service and place order if the product is in stock
+   InventoryResponse[] inventoryResponseArray=  webClientBuilder.build().get()
+             .uri("http://INVENTORY-SERVICE/api/inventory",uriBuilder -> uriBuilder.queryParam("skucode",skucodes).build())
+             .retrieve()
+             .bodyToMono(InventoryResponse[].class)
+             .block();
+          
+System.out.println(inventoryResponseArray.length);   
+boolean allProductsIsInStock=  Arrays.stream(inventoryResponseArray)
+	 .allMatch(InventoryResponse::getIsInStock);    
+  if(allProductsIsInStock) {
+    		repo.save(order);
+       }
+       else {
+     	throw new IllegalArgumentException("Product is not in stock please try again later") ;
+        }
+		
+		
+		
+		
+		            
+	}
+	private OrderLineItem mapToDto(OrderLineItemsdto orderLineItemsdto) {
+		OrderLineItem orderLineItem = new OrderLineItem();
+		orderLineItem.setPrice(orderLineItemsdto.getPrice());
+		orderLineItem.setQuantity(orderLineItemsdto.getQuantity());
+		orderLineItem.setSkucode(orderLineItemsdto.getSkucode());
+		return orderLineItem;
+		
+	}
+	
+	
+	
+	
+}

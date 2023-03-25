@@ -1,0 +1,1 @@
+spring.data.mongodb.uri=mongodb+srv://root:<admin1234>@cluster0.yvipjmf.mongodb.net/product-service?retryWrites=true&w=majority
